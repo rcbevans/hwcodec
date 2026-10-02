@@ -254,13 +254,20 @@ impl Encoder {
                     priority: Priority::Good as _,
                     ..Default::default()
                 });
-                // remove because poor quality on one of my computer
-                // codecs.push(CodecInfo {
-                //     name: "hevc_vaapi".to_owned(),
-                //     format: H265,
-                //     priority: Priority::Good as _,
-                //     ..Default::default()
-                // });
+                // The dummy-frame probe validates real behavior per driver.
+                codecs.push(CodecInfo {
+                    name: "hevc_vaapi".to_owned(),
+                    format: H265,
+                    priority: Priority::Good as _,
+                    ..Default::default()
+                });
+                // RDNA3+ (VCN 4.x) / Intel Xe AV1 encode; probe-gated.
+                codecs.push(CodecInfo {
+                    name: "av1_vaapi".to_owned(),
+                    format: AV1,
+                    priority: Priority::Good as _,
+                    ..Default::default()
+                });
             }
         }
 
