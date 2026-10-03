@@ -543,7 +543,14 @@ bool NativeDevice::support_decode(DataFormat format) {
   case H265:
     guid = &D3D11_DECODER_PROFILE_HEVC_VLD_MAIN;
     break;
-  default:
+  case VP9:
+    guid = &D3D11_DECODER_PROFILE_VP9_VLD_PROFILE0;
+    break;
+  case AV1:
+#ifdef D3D11_DECODER_PROFILE_AV1_VLD_PROFILE0
+    guid = &D3D11_DECODER_PROFILE_AV1_VLD_PROFILE0;
+    break;
+#endif
     return false;
   }
   BOOL supported = FALSE;

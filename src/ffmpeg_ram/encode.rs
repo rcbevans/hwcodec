@@ -229,8 +229,10 @@ impl Encoder {
                     ..Default::default()
                 });
             }
-            if _nv && contains(Driver::NV, AV1) {
-                // Ada (RTX 40xx) and newer NVENC AV1; probe-gated.
+            if _nv {
+                // Ada (RTX 40xx) and newer NVENC AV1; probe-gated. Not gated on
+                // contains(): the vram cache only records H264/H265, so an AV1
+                // check would always be false and dead-code the entry.
                 codecs.push(CodecInfo {
                     name: "av1_nvenc".to_owned(),
                     format: AV1,
@@ -255,8 +257,11 @@ impl Encoder {
                     ..Default::default()
                 });
             }
+            #[cfg(windows)]
             if amf {
-                // RDNA3+ (VCN 4.x) AMF AV1; probe-gated.
+                // RDNA3+ (VCN 4.x) AMF AV1; probe-gated. Windows-only: FFmpeg's
+                // AMF encoders do not exist on linux, where the amf flag means
+                // any AMD GPU.
                 codecs.push(CodecInfo {
                     name: "av1_amf".to_owned(),
                     format: AV1,
@@ -265,8 +270,9 @@ impl Encoder {
                 });
             }
             #[cfg(windows)]
-            if _intel && contains(Driver::MFX, AV1) {
-                // Intel Arc / Xe (Gen12+) QSV AV1; probe-gated.
+            if _intel {
+                // Intel Arc / Xe (Gen12+) QSV AV1; probe-gated. Not gated on
+                // contains(): same vram-cache limitation as av1_nvenc.
                 codecs.push(CodecInfo {
                     name: "av1_qsv".to_owned(),
                     format: AV1,
