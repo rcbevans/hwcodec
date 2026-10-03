@@ -1,9 +1,12 @@
+#[cfg(windows)]
 pub(crate) mod amf;
 pub mod decode;
 pub mod encode;
 pub(crate) mod ffmpeg;
 mod inner;
+#[cfg(windows)]
 pub(crate) mod mfx;
+#[cfg(windows)]
 pub(crate) mod nv;
 
 pub(crate) const MAX_ADATERS: usize = 16;

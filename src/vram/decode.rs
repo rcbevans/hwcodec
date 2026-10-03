@@ -16,6 +16,7 @@ unsafe impl Send for Decoder {}
 unsafe impl Sync for Decoder {}
 
 extern "C" {
+    #[cfg(not(target_os = "macos"))]
     fn hwcodec_get_d3d11_texture_width_height(
         texture: *mut c_void,
         width: *mut i32,
@@ -67,16 +68,30 @@ impl Decoder {
 
     unsafe extern "C" fn callback(texture: *mut c_void, obj: *const c_void) {
         let frames = &mut *(obj as *mut Vec<DecodeFrame>);
-        let mut width = 0;
-        let mut height = 0;
-        hwcodec_get_d3d11_texture_width_height(texture, &mut width, &mut height);
+        #[cfg(target_os = "macos")]
+        {
+            // macOS passes the HWCodecVTFrameInfo mailbox; the shared handle
+            // is the IOSurface id.
+            let info = &*(texture as *const ffmpeg::HWCodecVTFrameInfo);
+            frames.push(DecodeFrame {
+                texture: info.io_surface_id as *mut c_void,
+                width: info.width,
+                height: info.height,
+            });
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let mut width = 0;
+            let mut height = 0;
+            hwcodec_get_d3d11_texture_width_height(texture, &mut width, &mut height);
 
-        let frame = DecodeFrame {
-            texture,
-            width,
-            height,
-        };
-        frames.push(frame);
+            let frame = DecodeFrame {
+                texture,
+                width,
+                height,
+            };
+            frames.push(frame);
+        }
     }
 }
 
@@ -173,9 +188,15 @@ pub fn available() -> Vec<DecodeContext> {
                     let mut input = input.clone();
                     input.luid = luids[i];
                     input.vendor = match vendors[i] {
+                        #[cfg(target_os = "macos")]
+                        _ => FFMPEG, // no adapter vendors; the test writes 0
+                        #[cfg(not(target_os = "macos"))]
                         0 => NV,
+                        #[cfg(not(target_os = "macos"))]
                         1 => AMF,
+                        #[cfg(not(target_os = "macos"))]
                         2 => MFX,
+                        #[cfg(not(target_os = "macos"))]
                         _ => {
                             log::error!(
                                 "Unexpected vendor value encountered: {}. Skipping.",
@@ -196,4 +217,30 @@ pub fn available() -> Vec<DecodeContext> {
     }
 
     outputs
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+    use crate::common::DATA_H264_720P;
+
+    #[test]
+    fn videotoolbox_zero_copy_round_trip() {
+        let outputs = available();
+        assert!(
+            outputs.iter().any(|c| c.data_format == H264),
+            "videotoolbox vram h264 decoder not available: {:?}",
+            outputs
+        );
+        let ctx = outputs
+            .iter()
+            .find(|c| c.data_format == H264)
+            .unwrap()
+            .clone();
+        let mut decoder = Decoder::new(ctx).unwrap();
+        let frames = decoder.decode(DATA_H264_720P).unwrap();
+        assert!(!frames.is_empty(), "no frames decoded");
+        assert_ne!(frames[0].texture, std::ptr::null_mut(), "no IOSurface id");
+        assert!(frames[0].width > 0 && frames[0].height > 0);
+    }
 }
