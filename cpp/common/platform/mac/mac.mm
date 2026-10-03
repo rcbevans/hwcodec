@@ -94,7 +94,10 @@ static int32_t hasHardwareEncoder(bool h265) {
 // -------------- Your Public Interface: Unchanged ------------------
 extern "C" void checkVideoToolboxSupport(int32_t *h264Encoder, int32_t *h265Encoder, int32_t *h264Decoder, int32_t *h265Decoder) {
     // https://stackoverflow.com/questions/50956097/determine-if-ios-device-can-support-hevc-encoding
-    *h264Encoder = 0; // H.264 encoder support is disabled due to frequent reliability issues (see encode.rs)
+    // h264_videotoolbox was disabled upstream ("~50% failure" on 2024-era
+    // hardware); the per-candidate dummy encode in encode.rs is the real
+    // gate - a machine where it fails stays excluded.
+    *h264Encoder = hasHardwareEncoder(false);
     *h265Encoder = hasHardwareEncoder(true);
 
     *h264Decoder = VTIsHardwareDecodeSupported(kCMVideoCodecType_H264);
