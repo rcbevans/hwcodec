@@ -295,13 +295,12 @@ impl Encoder {
                     priority: Priority::Good as _,
                     ..Default::default()
                 });
-                // RDNA3+ (VCN 4.x) / Intel Xe AV1 encode; probe-gated.
-                codecs.push(CodecInfo {
-                    name: "av1_vaapi".to_owned(),
-                    format: AV1,
-                    priority: Priority::Good as _,
-                    ..Default::default()
-                });
+                // av1_vaapi removed: its dummy-frame probe segfaults inside
+                // the ffmpeg av1_vaapi encoder in the check-process context
+                // (X11/enigo initialized), which kills the whole config
+                // delivery — h264/hevc results included. Re-add only after
+                // the crash is root-caused; the check process cannot catch
+                // a signal mid-probe.
             }
         }
 
