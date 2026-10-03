@@ -182,6 +182,20 @@ impl Decoder {
                     priority: Priority::Good as _,
                     ..Default::default()
                 });
+                codecs.push(CodecInfo {
+                    name: "vp9".to_owned(),
+                    format: VP9,
+                    hwdevice: AV_HWDEVICE_TYPE_CUDA,
+                    priority: Priority::Good as _,
+                    ..Default::default()
+                });
+                codecs.push(CodecInfo {
+                    name: "av1".to_owned(),
+                    format: AV1,
+                    hwdevice: AV_HWDEVICE_TYPE_CUDA,
+                    priority: Priority::Good as _,
+                    ..Default::default()
+                });
             }
         }
 
@@ -202,6 +216,20 @@ impl Decoder {
                     priority: Priority::Best as _,
                     ..Default::default()
                 },
+                CodecInfo {
+                    name: "vp9".to_owned(),
+                    format: VP9,
+                    hwdevice: AV_HWDEVICE_TYPE_D3D11VA,
+                    priority: Priority::Best as _,
+                    ..Default::default()
+                },
+                CodecInfo {
+                    name: "av1".to_owned(),
+                    format: AV1,
+                    hwdevice: AV_HWDEVICE_TYPE_D3D11VA,
+                    priority: Priority::Best as _,
+                    ..Default::default()
+                },
             ]);
         }
 
@@ -218,6 +246,20 @@ impl Decoder {
                 CodecInfo {
                     name: "hevc".to_owned(),
                     format: H265,
+                    hwdevice: AV_HWDEVICE_TYPE_VAAPI,
+                    priority: Priority::Good as _,
+                    ..Default::default()
+                },
+                CodecInfo {
+                    name: "vp9".to_owned(),
+                    format: VP9,
+                    hwdevice: AV_HWDEVICE_TYPE_VAAPI,
+                    priority: Priority::Good as _,
+                    ..Default::default()
+                },
+                CodecInfo {
+                    name: "av1".to_owned(),
+                    format: AV1,
                     hwdevice: AV_HWDEVICE_TYPE_VAAPI,
                     priority: Priority::Good as _,
                     ..Default::default()
@@ -255,6 +297,8 @@ impl Decoder {
         let mut res = Vec::<CodecInfo>::new();
         let buf264 = &crate::common::DATA_H264_720P[..];
         let buf265 = &crate::common::DATA_H265_720P[..];
+        let bufvp9 = &crate::common::DATA_VP9_720P[..];
+        let bufav1 = &crate::common::DATA_AV1_720P[..];
 
         for codec in codecs {
             // Skip if this format already exists in results
@@ -282,6 +326,8 @@ impl Decoder {
                     let data = match codec.format {
                         H264 => buf264,
                         H265 => buf265,
+                        VP9 => bufvp9,
+                        AV1 => bufav1,
                         _ => {
                             log::error!("Unsupported format: {:?}, skipping", codec.format);
                             continue;

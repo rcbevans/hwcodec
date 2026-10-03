@@ -178,7 +178,10 @@ mod ffmpeg {
         let dyn_libs: Vec<&str> = if target_os == "windows" {
             ["User32", "bcrypt", "ole32", "advapi32"].to_vec()
         } else if target_os == "linux" {
-            let mut v = ["drm", "X11", "stdc++"].to_vec();
+            // FFmpeg built with VAAPI (the stock vcpkg port enables it on
+            // linux x64) references va* directly; without these the link
+            // only resolves in .so builds that happen to pull libva in.
+            let mut v = ["drm", "X11", "stdc++", "va", "va-drm"].to_vec();
             if target_arch == "x86_64" {
                 v.push("z");
             }
