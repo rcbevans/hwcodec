@@ -229,6 +229,15 @@ impl Encoder {
                     ..Default::default()
                 });
             }
+            if _nv && contains(Driver::NV, AV1) {
+                // Ada (RTX 40xx) and newer NVENC AV1; probe-gated.
+                codecs.push(CodecInfo {
+                    name: "av1_nvenc".to_owned(),
+                    format: AV1,
+                    priority: Priority::Best as _,
+                    ..Default::default()
+                });
+            }
             if amf && contains(Driver::AMF, H264) {
                 codecs.push(CodecInfo {
                     name: "h264_amf".to_owned(),
@@ -242,6 +251,25 @@ impl Encoder {
                 codecs.push(CodecInfo {
                     name: "hevc_amf".to_owned(),
                     format: H265,
+                    priority: Priority::Best as _,
+                    ..Default::default()
+                });
+            }
+            if amf {
+                // RDNA3+ (VCN 4.x) AMF AV1; probe-gated.
+                codecs.push(CodecInfo {
+                    name: "av1_amf".to_owned(),
+                    format: AV1,
+                    priority: Priority::Best as _,
+                    ..Default::default()
+                });
+            }
+            #[cfg(windows)]
+            if _intel && contains(Driver::MFX, AV1) {
+                // Intel Arc / Xe (Gen12+) QSV AV1; probe-gated.
+                codecs.push(CodecInfo {
+                    name: "av1_qsv".to_owned(),
+                    format: AV1,
                     priority: Priority::Best as _,
                     ..Default::default()
                 });

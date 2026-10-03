@@ -83,6 +83,10 @@ public:
       data_format_ = DataFormat::H264;
     } else if (name_.find("hevc") != std::string::npos) {
       data_format_ = DataFormat::H265;
+    } else if (name_.find("vp9") != std::string::npos) {
+      data_format_ = DataFormat::VP9;
+    } else if (name_.find("av1") != std::string::npos) {
+      data_format_ = DataFormat::AV1;
     } else {
       LOG_ERROR(std::string("unsupported data format:") + name_);
       return -1;
