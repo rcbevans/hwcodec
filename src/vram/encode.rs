@@ -1,13 +1,17 @@
 use crate::{
     common::Driver::*,
     ffmpeg::init_av_log,
-    vram::{
-        amf, ffmpeg, inner::EncodeCalls, mfx, nv, DynamicContext, EncodeContext, FeatureContext,
-    },
+    vram::{ffmpeg, inner::EncodeCalls, DynamicContext, EncodeContext, FeatureContext},
 };
+// The vendor SDK drivers are windows-only; macOS has the ffmpeg
+// (VideoToolbox) driver only.
+#[cfg(windows)]
+use crate::vram::{amf, mfx, nv};
 use log::trace;
 use std::{
-    fmt::Display, os::raw::{c_int, c_void}, slice::from_raw_parts
+    fmt::Display,
+    os::raw::{c_int, c_void},
+    slice::from_raw_parts,
 };
 
 pub struct Encoder {
@@ -27,10 +31,16 @@ impl Encoder {
             return Err(());
         }
         let calls = match ctx.f.driver {
+            #[cfg(windows)]
             NV => nv::encode_calls(),
+            #[cfg(windows)]
             AMF => amf::encode_calls(),
+            #[cfg(windows)]
             MFX => mfx::encode_calls(),
             FFMPEG => ffmpeg::encode_calls(),
+            // macOS: the vram encode path is not implemented yet.
+            #[cfg(target_os = "macos")]
+            _ => return Err(()),
         };
         unsafe {
             let codec = (calls.new)(
@@ -136,24 +146,27 @@ pub fn available(d: DynamicContext) -> Vec<FeatureContext> {
             .map(|n| (FFMPEG, n))
             .collect(),
     );
-    natives.append(
-        &mut nv::possible_support_encoders()
-            .drain(..)
-            .map(|n| (NV, n))
-            .collect(),
-    );
-    natives.append(
-        &mut amf::possible_support_encoders()
-            .drain(..)
-            .map(|n| (AMF, n))
-            .collect(),
-    );
-    natives.append(
-        &mut mfx::possible_support_encoders()
-            .drain(..)
-            .map(|n| (MFX, n))
-            .collect(),
-    );
+    #[cfg(windows)]
+    {
+        natives.append(
+            &mut nv::possible_support_encoders()
+                .drain(..)
+                .map(|n| (NV, n))
+                .collect(),
+        );
+        natives.append(
+            &mut amf::possible_support_encoders()
+                .drain(..)
+                .map(|n| (AMF, n))
+                .collect(),
+        );
+        natives.append(
+            &mut mfx::possible_support_encoders()
+                .drain(..)
+                .map(|n| (MFX, n))
+                .collect(),
+        );
+    }
     let inputs: Vec<EncodeContext> = natives
         .drain(..)
         .map(|(driver, n)| EncodeContext {
@@ -177,10 +190,15 @@ pub fn available(d: DynamicContext) -> Vec<FeatureContext> {
         );
 
         let test = match input.f.driver {
+            #[cfg(windows)]
             NV => nv::encode_calls().test,
+            #[cfg(windows)]
             AMF => amf::encode_calls().test,
+            #[cfg(windows)]
             MFX => mfx::encode_calls().test,
             FFMPEG => ffmpeg::encode_calls().test,
+            #[cfg(target_os = "macos")]
+            _ => ffmpeg::encode_calls().test,
         };
 
         let mut luids: Vec<i64> = vec![0; crate::vram::MAX_ADATERS];
@@ -220,16 +238,22 @@ pub fn available(d: DynamicContext) -> Vec<FeatureContext> {
                     let mut input = input.clone();
                     input.f.luid = luids[i];
                     input.f.vendor = match vendors[i] {
+                        #[cfg(target_os = "macos")]
+                        _ => FFMPEG, // no adapter vendors; the test writes 0
+                        #[cfg(not(target_os = "macos"))]
                         0 => NV,
+                        #[cfg(not(target_os = "macos"))]
                         1 => AMF,
+                        #[cfg(not(target_os = "macos"))]
                         2 => MFX,
+                        #[cfg(not(target_os = "macos"))]
                         _ => {
                             log::error!(
                                 "Unexpected vendor value encountered: {}. Skipping.",
                                 vendors[i]
                             );
                             continue;
-                        },
+                        }
                     };
                     exclude_luid_formats.push((luids[i], input.f.data_format as i32));
                     outputs.push(input);

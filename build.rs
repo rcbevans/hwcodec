@@ -261,9 +261,16 @@ mod ffmpeg {
             .write_to_file(Path::new(&env::var_os("OUT_DIR").unwrap()).join("ffmpeg_vram_ffi.rs"))
             .unwrap();
 
-        builder.files(
-            ["ffmpeg_vram_decode.cpp", "ffmpeg_vram_encode.cpp"].map(|f| ffmpeg_ram_dir.join(f)),
-        );
+        let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
+        let files: [&str; 2] = if target_os == "macos" {
+            ["ffmpeg_vram_decode_mac.mm", "ffmpeg_vram_encode_mac.cpp"]
+        } else {
+            ["ffmpeg_vram_decode.cpp", "ffmpeg_vram_encode.cpp"]
+        };
+        builder.files(files.map(|f| ffmpeg_ram_dir.join(f)));
+        if target_os == "macos" {
+            println!("cargo:rustc-link-lib=framework=IOSurface");
+        }
     }
 
     fn build_mux(builder: &mut Build) {

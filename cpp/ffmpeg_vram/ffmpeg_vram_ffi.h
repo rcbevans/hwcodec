@@ -3,6 +3,16 @@
 
 #include "../common/callback.h"
 #include <stdbool.h>
+#include <stdint.h>
+
+// macOS VideoToolbox: decoded frames stay as CVPixelBuffers; the decode
+// callback hands down a pointer to this mailbox so the consumer can treat
+// the IOSurface id as the shared texture handle.
+typedef struct {
+  uint32_t io_surface_id;
+  int32_t width;
+  int32_t height;
+} HWCodecVTFrameInfo;
 
 void *ffmpeg_vram_new_decoder(void *device, int64_t luid,
                               int32_t codecID);

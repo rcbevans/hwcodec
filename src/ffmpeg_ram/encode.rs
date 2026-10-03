@@ -365,7 +365,8 @@ impl Encoder {
                         let mut passed = false;
                         let mut last_err: Option<i32> = None;
 
-                        let max_attempts = if cfg!(all(target_os = "macos", target_arch = "x86_64")) {
+                        let max_attempts = if cfg!(all(target_os = "macos", target_arch = "x86_64"))
+                        {
                             3
                         } else {
                             1
@@ -381,7 +382,8 @@ impl Encoder {
                                         if frames[0].key == 1 && elapsed < TEST_TIMEOUT_MS as _ {
                                             debug!(
                                                 "Encoder {} test passed on attempt {}",
-                                                codec.name, attempt + 1
+                                                codec.name,
+                                                attempt + 1
                                             );
                                             res.push(codec.clone());
                                             passed = true;
