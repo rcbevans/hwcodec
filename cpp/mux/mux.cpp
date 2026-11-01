@@ -79,6 +79,20 @@ public:
       return false;
     }
 
+    if (strcmp(oc->oformat->name, "mp4") == 0) {
+      // Keep incomplete recordings recoverable and finalize normal recordings
+      // as ordinary MP4 for player compatibility.
+      if ((ret = av_opt_set(oc->priv_data, "movflags",
+                            "frag_keyframe+hybrid_fragmented", 0)) < 0 ||
+          (ret = av_opt_set_int(oc->priv_data, "frag_duration", 2000000, 0)) < 0) {
+        LOG_WARN(std::string("Failed to configure MP4 fragments, ret = ") +
+                  std::to_string(ret));
+        av_opt_set_defaults(oc->priv_data);
+      } else {
+        oc->flags |= AVFMT_FLAG_FLUSH_PACKETS;
+      }
+    }
+
     ret = avformat_write_header(oc, NULL);
     if (ret < 0) {
       LOG_ERROR(std::string("avformat_write_header failed"));
@@ -152,6 +166,8 @@ extern "C" Muxer *hwcodec_new_muxer(const char *filename, int width, int height,
     }
   } catch (const std::exception &e) {
     LOG_ERROR(std::string("new muxer exception: ") + std::string(e.what()));
+  } catch (...) {
+    LOG_ERROR("hwcodec_new_muxer: unknown exception");
   }
   if (muxer) {
     muxer->destroy();
@@ -167,6 +183,8 @@ extern "C" int hwcodec_write_video_frame(Muxer *muxer, const uint8_t *data,
     return muxer->write_video_frame(data, len, pts_ms, key);
   } catch (const std::exception &e) {
     LOG_ERROR(std::string("write_video_frame exception: ") + std::string(e.what()));
+  } catch (...) {
+    LOG_ERROR("hwcodec_write_video_frame: unknown exception");
   }
   return -1;
 }
@@ -184,5 +202,7 @@ extern "C" void hwcodec_free_muxer(Muxer *muxer) {
     muxer = NULL;
   } catch (const std::exception &e) {
     LOG_ERROR(std::string("free_muxer exception: ") + std::string(e.what()));
+  } catch (...) {
+    LOG_ERROR("hwcodec_free_muxer: unknown exception");
   }
 }
