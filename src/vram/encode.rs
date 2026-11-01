@@ -5,7 +5,9 @@ use crate::{
 };
 use log::trace;
 use std::{
-    fmt::Display, os::raw::{c_int, c_void}, slice::from_raw_parts
+    fmt::Display,
+    os::raw::{c_int, c_void},
+    slice::from_raw_parts,
 };
 
 pub struct Encoder {
@@ -237,7 +239,7 @@ pub fn available(d: DynamicContext) -> Vec<FeatureContext> {
                                 vendors[i]
                             );
                             continue;
-                        },
+                        }
                     };
                     exclude_luid_formats.push((luids[i], input.f.data_format as i32));
                     outputs.push(input);
